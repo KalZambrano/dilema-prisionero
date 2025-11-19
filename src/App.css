@@ -37,6 +37,9 @@ h3 {
   border-radius: 20px;
   padding: 40px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  & > h1{
+    color: rgb(0, 163, 174);
+  }
 }
 
 .config-section {

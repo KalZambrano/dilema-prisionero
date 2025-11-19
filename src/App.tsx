@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import './App.css';
+import Swal from 'sweetalert2';
 
 type Decision = 'C' | 'D' | null;
 type Strategy = 'manual' | 'always-cooperate' | 'always-defect' | 'tit-for-tat' | 'random';
@@ -31,7 +32,25 @@ const App: React.FC = () => {
   const [currentDecisions, setCurrentDecisions] = useState<Decision[]>([]);
 
   // Inicializar juego
+  
   const startGame = () => {
+    if (numPlayers < 2 || numPlayers > 5) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'El juego debe tener entre 2 y 5 jugadores.',
+      })
+    } else if (gameType === 'multiple' && numRounds > 50 || numRounds < 5){
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'El juego debe tener entre 5 y 50 rondas.',
+      })
+    } else {
+      startRound();
+    }
+  }
+  const startRound = () => {
     const newPlayers: Player[] = Array.from({ length: numPlayers }, (_, i) => ({
       id: i,
       name: players[i]?.name || `Jugador ${i + 1}`,
@@ -62,19 +81,19 @@ const App: React.FC = () => {
       return [-1, -1];
     } else {
       // Reglas para 3-5 jugadores
-      const penalties: number[] = [];
+      // const penalties: number[] = [];
       
       if (cooperators === total) {
         // Todos cooperan
         return Array(total).fill(-4);
       } else if (defectors === total) {
-        // Todos traicionan
+        // Todos confiesan
         return Array(total).fill(-1);
       } else if (defectors === 1) {
-        // Solo uno traiciona
+        // Solo uno confiesa
         return decisions.map(d => d === 'D' ? 0 : -3);
       } else {
-        // Más de uno traiciona
+        // Más de uno confiesa
         return decisions.map(d => d === 'D' ? -1 : -4);
       }
     }
@@ -82,13 +101,13 @@ const App: React.FC = () => {
 
   // Generar decisión según estrategia
   const generateDecision = (player: Player, roundNum: number): Decision => {
-    switch (player.strategy) {
-      case 'always-cooperate':
-        return 'C';
-      case 'always-defect':
-        return 'D';
-      case 'tit-for-tat':
-        if (roundNum === 1) return 'C';
+    const playerChoice = player.strategy
+    if (playerChoice === 'always-cooperate'){
+      return 'C';
+    } else if (playerChoice === 'always-defect'){
+      return 'D';
+    } else if (playerChoice === 'tit-for-tat'){
+      if (roundNum === 1) return 'C';
         // Copiar la decisión más común de la ronda anterior
         const lastRound = roundResults[roundResults.length - 1];
         if (lastRound) {
@@ -96,10 +115,10 @@ const App: React.FC = () => {
           return cooperators > numPlayers / 2 ? 'C' : 'D';
         }
         return 'C';
-      case 'random':
-        return Math.random() > 0.5 ? 'C' : 'D';
-      default:
-        return null;
+    } else if (playerChoice === 'random'){
+      return Math.random() > 0.5 ? 'C' : 'D';
+    } else {
+      return null;
     }
   };
 
@@ -118,7 +137,11 @@ const App: React.FC = () => {
 
     // Verificar que todas las decisiones estén tomadas
     if (finalDecisions.some(d => d === null)) {
-      alert('¡Todos los jugadores deben tomar una decisión!');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Todos los jugadores deben tomar una decisión.',
+      })
       return;
     }
 
@@ -160,12 +183,12 @@ const App: React.FC = () => {
     if (allDefect) {
       return {
         status: '✓ Equilibrio de Nash detectado',
-        explanation: 'Cuando todos traicionan, ningún jugador puede mejorar su resultado cambiando unilateralmente su decisión. Si un jugador cambia a cooperar, recibirá una penalidad peor.'
+        explanation: 'Cuando todos confiesan, ningún jugador puede mejorar su resultado cambiando unilateralmente su decisión. Si un jugador cambia a no confesar, recibirá una penalidad peor.'
       };
     } else if (allCooperate) {
       return {
         status: '⚠️ Comportamiento cooperativo (NO es equilibrio de Nash)',
-        explanation: 'Aunque todos cooperan, cualquier jugador podría mejorar su resultado traicionando (obtendría 0 años en vez de -3/-4). Por tanto, esta situación es inestable.'
+        explanation: 'Aunque todos cooperan, cualquier jugador podría mejorar su resultado confesando (obtendría 0 años en vez de -3/-4). Por tanto, esta situación es inestable.'
       };
     } else {
       return {
@@ -252,8 +275,8 @@ const App: React.FC = () => {
                 }}
               >
                 <option value="manual">Manual</option>
-                <option value="always-cooperate">Siempre Cooperar</option>
-                <option value="always-defect">Siempre Traicionar</option>
+                <option value="always-cooperate">Nunca Confesar</option>
+                <option value="always-defect">Siempre Confesar</option>
                 <option value="tit-for-tat">Ojo por Ojo</option>
                 <option value="random">Aleatorio</option>
               </select>
@@ -289,7 +312,7 @@ const App: React.FC = () => {
                     setCurrentDecisions(newDecisions);
                   }}
                 >
-                  🤝 Cooperar
+                  🤝 No Confesar
                 </button>
                 <button
                   className={`btn-decision ${currentDecisions[idx] === 'D' ? 'selected defect' : ''}`}
@@ -299,7 +322,7 @@ const App: React.FC = () => {
                     setCurrentDecisions(newDecisions);
                   }}
                 >
-                  ⚔️ Traicionar
+                  🗣️ Confesar
                 </button>
               </div>
             ) : (
@@ -341,7 +364,7 @@ const App: React.FC = () => {
                       <td key={pidx}>
                         <div className="decision-cell">
                           <span className={`decision-badge ${decision === 'C' ? 'cooperate' : 'defect'}`}>
-                            {decision === 'C' ? '🤝 Cooperó' : '⚔️ Traicionó'}
+                            {decision === 'C' ? '🤝 No Confesó' : '🗣️ Confesó'}
                           </span>
                           <span className="penalty-value">{result.penalties[pidx]} años</span>
                         </div>
@@ -365,7 +388,7 @@ const App: React.FC = () => {
     }));
 
     const roundChartData = roundResults.map(r => {
-      const data: any = { round: r.round };
+      const data: Record<string, number> = { round: r.round };
       players.forEach((p, idx) => {
         data[p.name] = Math.abs(r.penalties[idx]);
       });
@@ -464,6 +487,38 @@ const App: React.FC = () => {
             </ResponsiveContainer>
           </div>
         )}
+
+        <div className='chart-container'>
+          <h3>📝 Detalles de las Rondas</h3>
+          <p className='chart-description'>Estas son las decisiones de cada jugador en cada ronda.</p>
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ronda</th>
+                  {players.map(p => <th key={p.id}>{p.name}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {roundResults.map((result, idx) => (
+                  <tr key={idx}>
+                    <td><strong>#{result.round}</strong></td>
+                    {result.decisions.map((decision, pidx) => (
+                      <td key={pidx}>
+                        <div className="decision-cell">
+                          <span className={`decision-badge ${decision === 'C' ? 'cooperate' : 'defect'}`}>
+                            {decision === 'C' ? '🤝 No Confesó' : '🗣️ Confesó'}
+                          </span>
+                          <span className="penalty-value">{result.penalties[pidx]} años</span>
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <button className="btn-primary" onClick={() => {
           setStep('config');
