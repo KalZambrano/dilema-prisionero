@@ -1,25 +1,9 @@
 import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import './App.css';
 import Swal from 'sweetalert2';
 
-type Decision = 'C' | 'D' | null;
-type Strategy = 'manual' | 'always-cooperate' | 'always-defect' | 'tit-for-tat' | 'random';
-
-interface Player {
-  id: number;
-  name: string;
-  strategy: Strategy;
-  decisions: Decision[];
-  penalties: number[];
-  totalPenalty: number;
-}
-
-interface RoundResult {
-  round: number;
-  decisions: Decision[];
-  penalties: number[];
-}
+import type { Player, RoundResult, Decision, Strategy } from '../types';
 
 const App: React.FC = () => {
   const [step, setStep] = useState<'config' | 'game' | 'results'>('config');
@@ -74,27 +58,27 @@ const App: React.FC = () => {
 
     if (total === 2) {
       // Reglas clásicas para 2 jugadores
-      if (cooperators === 2) return [-3, -3];
+      if (cooperators === 2) return [2, 2];
       if (cooperators === 1) {
-        return decisions.map(d => d === 'C' ? -3 : 0);
+        return decisions.map(d => d === 'C' ? 10 : 0);
       }
-      return [-1, -1];
+      return [5, 5];
     } else {
       // Reglas para 3-5 jugadores
       // const penalties: number[] = [];
       
       if (cooperators === total) {
         // Todos cooperan
-        return Array(total).fill(-4);
+        return Array(total).fill(2);
       } else if (defectors === total) {
         // Todos confiesan
-        return Array(total).fill(-1);
+        return Array(total).fill(5);
       } else if (defectors === 1) {
         // Solo uno confiesa
-        return decisions.map(d => d === 'D' ? 0 : -3);
+        return decisions.map(d => d === 'D' ? 0 : 6);
       } else {
         // Más de uno confiesa
-        return decisions.map(d => d === 'D' ? -1 : -4);
+        return decisions.map(d => d === 'D' ? 2 : 8);
       }
     }
   };
@@ -108,13 +92,13 @@ const App: React.FC = () => {
       return 'D';
     } else if (playerChoice === 'tit-for-tat'){
       if (roundNum === 1) return 'C';
-        // Copiar la decisión más común de la ronda anterior
-        const lastRound = roundResults[roundResults.length - 1];
-        if (lastRound) {
-          const cooperators = lastRound.decisions.filter(d => d === 'C').length;
-          return cooperators > numPlayers / 2 ? 'C' : 'D';
-        }
-        return 'C';
+      // Copiar la decisión más común de la ronda anterior
+      const lastRound = roundResults[roundResults.length - 1];
+      if (lastRound) {
+        const cooperators = lastRound.decisions.filter(d => d === 'C').length;
+        return cooperators > numPlayers / 2 ? 'C' : 'D';
+      }
+      return 'C';
     } else if (playerChoice === 'random'){
       return Math.random() > 0.5 ? 'C' : 'D';
     } else {
@@ -382,10 +366,10 @@ const App: React.FC = () => {
 
   // Renderizar resultados
   const renderResults = () => {
-    const chartData = players.map(p => ({
-      name: p.name,
-      penalidad: Math.abs(p.totalPenalty)
-    }));
+    // const chartData = players.map(p => ({
+    //   name: p.name,
+    //   penalidad: Math.abs(p.totalPenalty)
+    // }));
 
     const roundChartData = roundResults.map(r => {
       const data: Record<string, number> = { round: r.round };
@@ -426,7 +410,7 @@ const App: React.FC = () => {
                 <p className="explanation">{nashAnalysis.explanation}</p>
               </div>
               <hr />
-              <h4>Tasa de Cooperación:</h4>
+              <h4>Tasa de Cooperación (No confesar):</h4>
               {players.map(p => {
                 const cooperations = p.decisions.filter(d => d === 'C').length;
                 const rate = ((cooperations / p.decisions.length) * 100).toFixed(1);
@@ -444,9 +428,9 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="chart-container">
+        {/* <div className="chart-container">
           <h3>📊 Penalidades Totales Acumuladas</h3>
-          <p className="chart-description">Suma total de años de penalidad por jugador. Menor es mejor.</p>
+          <p className="chart-description">Suma total de años de penalidad por jugador.</p>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -457,7 +441,7 @@ const App: React.FC = () => {
               <Bar dataKey="penalidad" fill="#8884d8" name="Años de penalidad" />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </div> */}
 
         {roundResults.length > 1 && (
           <div className="chart-container">
