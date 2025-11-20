@@ -1,14 +1,24 @@
-import React, { useState } from 'react';
-import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
-import './App.css';
-import Swal from 'sweetalert2';
+import React, { useState } from "react";
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+} from "recharts";
+import "./App.css";
+import Swal from "sweetalert2";
 
-import type { Player, RoundResult, Decision, Strategy } from '../types';
+import { ResultTable } from "./components/ResultTable";
+import type { Player, RoundResult, Decision, Strategy } from "../types";
 
 const App: React.FC = () => {
-  const [step, setStep] = useState<'config' | 'game' | 'results'>('config');
+  const [step, setStep] = useState<"config" | "game" | "results">("config");
   const [numPlayers, setNumPlayers] = useState<number>(2);
-  const [gameType, setGameType] = useState<'single' | 'multiple'>('single');
+  const [gameType, setGameType] = useState<"single" | "multiple">("single");
   const [numRounds, setNumRounds] = useState<number>(10);
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentRound, setCurrentRound] = useState<number>(0);
@@ -16,57 +26,57 @@ const App: React.FC = () => {
   const [currentDecisions, setCurrentDecisions] = useState<Decision[]>([]);
 
   // Inicializar juego
-  
+
   const startGame = () => {
     if (numPlayers < 2 || numPlayers > 5) {
       Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'El juego debe tener entre 2 y 5 jugadores.',
-      })
-    } else if (gameType === 'multiple' && numRounds > 50 || numRounds < 5){
+        icon: "error",
+        title: "Error",
+        text: "El juego debe tener entre 2 y 5 jugadores.",
+      });
+    } else if ((gameType === "multiple" && numRounds > 50) || numRounds < 5) {
       Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'El juego debe tener entre 5 y 50 rondas.',
-      })
+        icon: "error",
+        title: "Error",
+        text: "El juego debe tener entre 5 y 50 rondas.",
+      });
     } else {
       startRound();
     }
-  }
+  };
   const startRound = () => {
     const newPlayers: Player[] = Array.from({ length: numPlayers }, (_, i) => ({
       id: i,
       name: players[i]?.name || `Jugador ${i + 1}`,
-      strategy: players[i]?.strategy || 'manual',
+      strategy: players[i]?.strategy || "manual",
       decisions: [],
       penalties: [],
-      totalPenalty: 0
+      totalPenalty: 0,
     }));
     setPlayers(newPlayers);
     setCurrentRound(1);
     setCurrentDecisions(Array(numPlayers).fill(null));
     setRoundResults([]);
-    setStep('game');
+    setStep("game");
   };
 
   // Calcular penalidades según las reglas
   const calculatePenalties = (decisions: Decision[]): number[] => {
-    const cooperators = decisions.filter(d => d === 'C').length;
-    const defectors = decisions.filter(d => d === 'D').length;
+    const cooperators = decisions.filter((d) => d === "C").length;
+    const defectors = decisions.filter((d) => d === "D").length;
     const total = cooperators + defectors;
 
     if (total === 2) {
       // Reglas clásicas para 2 jugadores
       if (cooperators === 2) return [2, 2];
       if (cooperators === 1) {
-        return decisions.map(d => d === 'C' ? 10 : 0);
+        return decisions.map((d) => (d === "C" ? 10 : 0));
       }
       return [5, 5];
     } else {
       // Reglas para 3-5 jugadores
       // const penalties: number[] = [];
-      
+
       if (cooperators === total) {
         // Todos cooperan
         return Array(total).fill(2);
@@ -75,32 +85,32 @@ const App: React.FC = () => {
         return Array(total).fill(5);
       } else if (defectors === 1) {
         // Solo uno confiesa
-        return decisions.map(d => d === 'D' ? 0 : 6);
+        return decisions.map((d) => (d === "D" ? 0 : 6));
       } else {
         // Más de uno confiesa
-        return decisions.map(d => d === 'D' ? 2 : 8);
+        return decisions.map((d) => (d === "D" ? 2 : 8));
       }
     }
   };
 
   // Generar decisión según estrategia
   const generateDecision = (player: Player, roundNum: number): Decision => {
-    const playerChoice = player.strategy
-    if (playerChoice === 'always-cooperate'){
-      return 'C';
-    } else if (playerChoice === 'always-defect'){
-      return 'D';
-    } else if (playerChoice === 'tit-for-tat'){
-      if (roundNum === 1) return 'C';
+    const playerChoice = player.strategy;
+    if (playerChoice === "always-cooperate") {
+      return "C";
+    } else if (playerChoice === "always-defect") {
+      return "D";
+    } else if (playerChoice === "tit-for-tat") {
+      if (roundNum === 1) return "C";
       // Copiar la decisión más común de la ronda anterior
       const lastRound = roundResults[roundResults.length - 1];
       if (lastRound) {
-        const cooperators = lastRound.decisions.filter(d => d === 'C').length;
-        return cooperators > numPlayers / 2 ? 'C' : 'D';
+        const cooperators = lastRound.decisions.filter((d) => d === "C").length;
+        return cooperators > numPlayers / 2 ? "C" : "D";
       }
-      return 'C';
-    } else if (playerChoice === 'random'){
-      return Math.random() > 0.5 ? 'C' : 'D';
+      return "C";
+    } else if (playerChoice === "random") {
+      return Math.random() > 0.5 ? "C" : "D";
     } else {
       return null;
     }
@@ -109,47 +119,50 @@ const App: React.FC = () => {
   // Procesar ronda
   const processRound = () => {
     let finalDecisions = [...currentDecisions];
-    
+
     // Generar decisiones automáticas para jugadores con estrategia
     finalDecisions = finalDecisions.map((decision, idx) => {
       if (decision !== null) return decision;
-      if (players[idx].strategy !== 'manual') {
+      if (players[idx].strategy !== "manual") {
         return generateDecision(players[idx], currentRound);
       }
       return decision;
     });
 
     // Verificar que todas las decisiones estén tomadas
-    if (finalDecisions.some(d => d === null)) {
+    if (finalDecisions.some((d) => d === null)) {
       Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Todos los jugadores deben tomar una decisión.',
-      })
+        icon: "error",
+        title: "Error",
+        text: "Todos los jugadores deben tomar una decisión.",
+      });
       return;
     }
 
     const penalties = calculatePenalties(finalDecisions);
-    
+
     // Actualizar jugadores
     const updatedPlayers = players.map((player, idx) => ({
       ...player,
       decisions: [...player.decisions, finalDecisions[idx]!],
       penalties: [...player.penalties, penalties[idx]],
-      totalPenalty: player.totalPenalty + penalties[idx]
+      totalPenalty: player.totalPenalty + penalties[idx],
     }));
 
     setPlayers(updatedPlayers);
-    setRoundResults([...roundResults, {
-      round: currentRound,
-      decisions: finalDecisions as Decision[],
-      penalties
-    }]);
+    setRoundResults([
+      ...roundResults,
+      {
+        round: currentRound,
+        decisions: finalDecisions as Decision[],
+        penalties,
+      },
+    ]);
 
-    const totalRounds = gameType === 'single' ? 1 : numRounds;
-    
+    const totalRounds = gameType === "single" ? 1 : numRounds;
+
     if (currentRound >= totalRounds) {
-      setStep('results');
+      setStep("results");
     } else {
       setCurrentRound(currentRound + 1);
       setCurrentDecisions(Array(numPlayers).fill(null));
@@ -157,27 +170,34 @@ const App: React.FC = () => {
   };
 
   // Analizar equilibrio de Nash
-  const analyzeNashEquilibrium = (): { status: string; explanation: string } => {
-    if (roundResults.length === 0) return { status: 'Sin datos', explanation: '' };
-    
+  const analyzeNashEquilibrium = (): {
+    status: string;
+    explanation: string;
+  } => {
+    if (roundResults.length === 0)
+      return { status: "Sin datos", explanation: "" };
+
     const lastRound = roundResults[roundResults.length - 1];
-    const allDefect = lastRound.decisions.every(d => d === 'D');
-    const allCooperate = lastRound.decisions.every(d => d === 'C');
-    
+    const allDefect = lastRound.decisions.every((d) => d === "D");
+    const allCooperate = lastRound.decisions.every((d) => d === "C");
+
     if (allDefect) {
       return {
-        status: '✓ Equilibrio de Nash detectado',
-        explanation: 'Cuando todos confiesan, ningún jugador puede mejorar su resultado cambiando unilateralmente su decisión. Si un jugador cambia a no confesar, recibirá una penalidad peor.'
+        status: "✓ Equilibrio de Nash detectado",
+        explanation:
+          "Cuando todos confiesan, ningún jugador puede mejorar su resultado cambiando unilateralmente su decisión. Si un jugador cambia a no confesar, recibirá una penalidad peor.",
       };
     } else if (allCooperate) {
       return {
-        status: '⚠️ Comportamiento cooperativo (NO es equilibrio de Nash)',
-        explanation: 'Aunque todos cooperan, cualquier jugador podría mejorar su resultado confesando (obtendría 0 años en vez de -3/-4). Por tanto, esta situación es inestable.'
+        status: "⚠️ Comportamiento cooperativo (NO es equilibrio de Nash)",
+        explanation:
+          "Aunque todos cooperan, cualquier jugador podría mejorar su resultado confesando. Por tanto, esta situación es inestable.",
       };
     } else {
       return {
-        status: '⚠️ Comportamiento mixto (NO es equilibrio de Nash)',
-        explanation: 'Los jugadores tienen incentivos para cambiar sus estrategias. No se ha alcanzado un punto donde nadie quiera cambiar unilateralmente.'
+        status: "⚠️ Comportamiento mixto (NO es equilibrio de Nash)",
+        explanation:
+          "Los jugadores tienen incentivos para cambiar sus estrategias. No se ha alcanzado un punto donde nadie quiera cambiar unilateralmente.",
       };
     }
   };
@@ -186,10 +206,10 @@ const App: React.FC = () => {
   const renderConfig = () => (
     <div className="config-container">
       <h1>🎮 Simulador del Dilema del Prisionero</h1>
-      
+
       <div className="config-section">
         <h2>Configuración del Juego</h2>
-        
+
         <div className="form-group">
           <label>Número de jugadores (2-5):</label>
           <input
@@ -200,27 +220,34 @@ const App: React.FC = () => {
             onChange={(e) => {
               const val = parseInt(e.target.value);
               setNumPlayers(val);
-              setPlayers(Array.from({ length: val }, (_, i) => ({
-                id: i,
-                name: `Jugador ${i + 1}`,
-                strategy: 'manual',
-                decisions: [],
-                penalties: [],
-                totalPenalty: 0
-              })));
+              setPlayers(
+                Array.from({ length: val }, (_, i) => ({
+                  id: i,
+                  name: `Jugador ${i + 1}`,
+                  strategy: "manual",
+                  decisions: [],
+                  penalties: [],
+                  totalPenalty: 0,
+                }))
+              );
             }}
           />
         </div>
 
         <div className="form-group">
           <label>Tipo de juego:</label>
-          <select value={gameType} onChange={(e) => setGameType(e.target.value as 'single' | 'multiple')}>
+          <select
+            value={gameType}
+            onChange={(e) =>
+              setGameType(e.target.value as "single" | "multiple")
+            }
+          >
             <option value="single">Una sola ronda</option>
             <option value="multiple">Rondas repetidas</option>
           </select>
         </div>
 
-        {gameType === 'multiple' && (
+        {gameType === "multiple" && (
           <div className="form-group">
             <label>Número de rondas (5-50):</label>
             <input
@@ -251,10 +278,13 @@ const App: React.FC = () => {
             <div className="form-group">
               <label>Estrategia:</label>
               <select
-                value={players[i]?.strategy || 'manual'}
+                value={players[i]?.strategy || "manual"}
                 onChange={(e) => {
                   const newPlayers = [...players];
-                  newPlayers[i] = { ...newPlayers[i], strategy: e.target.value as Strategy };
+                  newPlayers[i] = {
+                    ...newPlayers[i],
+                    strategy: e.target.value as Strategy,
+                  };
                   setPlayers(newPlayers);
                 }}
               >
@@ -278,31 +308,39 @@ const App: React.FC = () => {
   // Renderizar juego
   const renderGame = () => (
     <div className="game-container">
-      <h1>Ronda {currentRound} de {gameType === 'single' ? 1 : numRounds}</h1>
-      
+      <h1>
+        Ronda {currentRound} de {gameType === "single" ? 1 : numRounds}
+      </h1>
+
       <div className="decisions-grid">
         {players.map((player, idx) => (
           <div key={player.id} className="player-decision">
             <h3>{player.name}</h3>
-            <div className="strategy-badge">{player.strategy === 'manual' ? '🎯 Manual' : '🤖 Automático'}</div>
-            
-            {player.strategy === 'manual' ? (
+            <div className="strategy-badge">
+              {player.strategy === "manual" ? "🎯 Manual" : "🤖 Automático"}
+            </div>
+
+            {player.strategy === "manual" ? (
               <div className="decision-buttons">
                 <button
-                  className={`btn-decision ${currentDecisions[idx] === 'C' ? 'selected cooperate' : ''}`}
+                  className={`btn-decision ${
+                    currentDecisions[idx] === "C" ? "selected cooperate" : ""
+                  }`}
                   onClick={() => {
                     const newDecisions = [...currentDecisions];
-                    newDecisions[idx] = 'C';
+                    newDecisions[idx] = "C";
                     setCurrentDecisions(newDecisions);
                   }}
                 >
                   🤝 No Confesar
                 </button>
                 <button
-                  className={`btn-decision ${currentDecisions[idx] === 'D' ? 'selected defect' : ''}`}
+                  className={`btn-decision ${
+                    currentDecisions[idx] === "D" ? "selected defect" : ""
+                  }`}
                   onClick={() => {
                     const newDecisions = [...currentDecisions];
-                    newDecisions[idx] = 'D';
+                    newDecisions[idx] = "D";
                     setCurrentDecisions(newDecisions);
                   }}
                 >
@@ -314,7 +352,7 @@ const App: React.FC = () => {
                 <p>Decisión automática según estrategia</p>
               </div>
             )}
-            
+
             <div className="player-stats">
               <div>Penalidad total: {player.totalPenalty} años</div>
             </div>
@@ -327,39 +365,13 @@ const App: React.FC = () => {
       </button>
 
       {roundResults.length > 0 && (
-        <div className="round-history">
+        <ResultTable roundResults={roundResults} players={players}>
           <h3>📋 Historial Completo de Decisiones</h3>
           <p className="history-description">
-            Aquí puedes ver todas las decisiones tomadas en cada ronda, junto con las penalidades recibidas por cada jugador.
+            Aquí puedes ver todas las decisiones tomadas en cada ronda, junto
+            con las penalidades recibidas por cada jugador.
           </p>
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Ronda</th>
-                  {players.map(p => <th key={p.id}>{p.name}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {roundResults.map((result, idx) => (
-                  <tr key={idx}>
-                    <td><strong>#{result.round}</strong></td>
-                    {result.decisions.map((decision, pidx) => (
-                      <td key={pidx}>
-                        <div className="decision-cell">
-                          <span className={`decision-badge ${decision === 'C' ? 'cooperate' : 'defect'}`}>
-                            {decision === 'C' ? '🤝 No Confesó' : '🗣️ Confesó'}
-                          </span>
-                          <span className="penalty-value">{result.penalties[pidx]} años</span>
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        </ResultTable>
       )}
     </div>
   );
@@ -371,7 +383,7 @@ const App: React.FC = () => {
     //   penalidad: Math.abs(p.totalPenalty)
     // }));
 
-    const roundChartData = roundResults.map(r => {
+    const roundChartData = roundResults.map((r) => {
       const data: Record<string, number> = { round: r.round };
       players.forEach((p, idx) => {
         data[p.name] = Math.abs(r.penalties[idx]);
@@ -388,15 +400,19 @@ const App: React.FC = () => {
         <div className="results-grid">
           <div className="result-card">
             <h3>🏆 Clasificación Final</h3>
-            <p className="card-description">El jugador con menos años de penalidad gana (más tiempo de contrato).</p>
+            <p className="card-description">
+              El jugador con menos años de penalidad gana.
+            </p>
             <div className="ranking">
               {[...players]
-                .sort((a, b) => b.totalPenalty - a.totalPenalty)
+                .sort((a, b) => a.totalPenalty - b.totalPenalty)
                 .map((player, idx) => (
                   <div key={player.id} className="rank-item">
                     <span className="rank-position">{idx + 1}°</span>
                     <span className="rank-name">{player.name}</span>
-                    <span className="rank-penalty">{player.totalPenalty} años</span>
+                    <span className="rank-penalty">
+                      {player.totalPenalty} años
+                    </span>
                   </div>
                 ))}
             </div>
@@ -411,14 +427,22 @@ const App: React.FC = () => {
               </div>
               <hr />
               <h4>Tasa de Cooperación (No confesar):</h4>
-              {players.map(p => {
-                const cooperations = p.decisions.filter(d => d === 'C').length;
-                const rate = ((cooperations / p.decisions.length) * 100).toFixed(1);
+              {players.map((p) => {
+                const cooperations = p.decisions.filter(
+                  (d) => d === "C"
+                ).length;
+                const rate = (
+                  (cooperations / p.decisions.length) *
+                  100
+                ).toFixed(1);
                 return (
                   <div key={p.id} className="cooperation-bar">
                     <span className="player-label">{p.name}:</span>
                     <div className="bar-container">
-                      <div className="bar-fill" style={{ width: `${rate}%` }}></div>
+                      <div
+                        className="bar-fill"
+                        style={{ width: `${rate}%` }}
+                      ></div>
                       <span className="bar-text">{rate}%</span>
                     </div>
                   </div>
@@ -447,15 +471,29 @@ const App: React.FC = () => {
           <div className="chart-container">
             <h3>📈 Evolución de Penalidades por Ronda</h3>
             <p className="chart-description">
-              Este gráfico muestra cuántos años de penalidad recibió cada jugador en cada ronda individual. 
-              Te permite ver cómo las decisiones cambiaron a lo largo del tiempo y qué jugadores recibieron 
-              las penalidades más altas en cada momento.
+              Este gráfico muestra cuántos años de penalidad recibió cada
+              jugador en cada ronda individual. Te permite ver cómo las
+              decisiones cambiaron a lo largo del tiempo y qué jugadores
+              recibieron las penalidades más altas en cada momento.
             </p>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={roundChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="round" label={{ value: 'Número de Ronda', position: 'insideBottom', offset: -5 }} />
-                <YAxis label={{ value: 'Años de penalidad en la ronda', angle: -90, position: 'insideLeft' }} />
+                <XAxis
+                  dataKey="round"
+                  label={{
+                    value: "Número de Ronda",
+                    position: "insideBottom",
+                    offset: -5,
+                  }}
+                />
+                <YAxis
+                  label={{
+                    value: "Años de penalidad en la ronda",
+                    angle: -90,
+                    position: "insideLeft",
+                  }}
+                />
                 <Tooltip />
                 <Legend />
                 {players.map((p, idx) => (
@@ -472,44 +510,24 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <div className='chart-container'>
-          <h3>📝 Detalles de las Rondas</h3>
-          <p className='chart-description'>Estas son las decisiones de cada jugador en cada ronda.</p>
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Ronda</th>
-                  {players.map(p => <th key={p.id}>{p.name}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {roundResults.map((result, idx) => (
-                  <tr key={idx}>
-                    <td><strong>#{result.round}</strong></td>
-                    {result.decisions.map((decision, pidx) => (
-                      <td key={pidx}>
-                        <div className="decision-cell">
-                          <span className={`decision-badge ${decision === 'C' ? 'cooperate' : 'defect'}`}>
-                            {decision === 'C' ? '🤝 No Confesó' : '🗣️ Confesó'}
-                          </span>
-                          <span className="penalty-value">{result.penalties[pidx]} años</span>
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="chart-container">
+          <ResultTable roundResults={roundResults} players={players}>
+            <h3>📝 Detalles de las Rondas</h3>
+            <p className="chart-description">
+              Estas son las decisiones de cada jugador en cada ronda.
+            </p>
+          </ResultTable>
         </div>
 
-        <button className="btn-primary" onClick={() => {
-          setStep('config');
-          setPlayers([]);
-          setRoundResults([]);
-          setCurrentRound(0);
-        }}>
+        <button
+          className="btn-primary"
+          onClick={() => {
+            setStep("config");
+            setPlayers([]);
+            setRoundResults([]);
+            setCurrentRound(0);
+          }}
+        >
           Nuevo Juego
         </button>
       </div>
@@ -518,10 +536,9 @@ const App: React.FC = () => {
 
   return (
     <div className="app">
-
-      {step === 'config' && renderConfig()}
-      {step === 'game' && renderGame()}
-      {step === 'results' && renderResults()}
+      {step === "config" && renderConfig()}
+      {step === "game" && renderGame()}
+      {step === "results" && renderResults()}
     </div>
   );
 };
