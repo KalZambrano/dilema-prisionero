@@ -1,18 +1,10 @@
 import React, { useState } from "react";
-import {
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from "recharts";
+
 import "./App.css";
 import Swal from "sweetalert2";
 
 import { ResultTable } from "./components/ResultTable";
+import { ResultsApp } from "./components/ResultsApp";
 import type { Player, RoundResult, Decision, Strategy } from "../types";
 
 const App: React.FC = () => {
@@ -166,39 +158,6 @@ const App: React.FC = () => {
     } else {
       setCurrentRound(currentRound + 1);
       setCurrentDecisions(Array(numPlayers).fill(null));
-    }
-  };
-
-  // Analizar equilibrio de Nash
-  const analyzeNashEquilibrium = (): {
-    status: string;
-    explanation: string;
-  } => {
-    if (roundResults.length === 0)
-      return { status: "Sin datos", explanation: "" };
-
-    const lastRound = roundResults[roundResults.length - 1];
-    const allDefect = lastRound.decisions.every((d) => d === "D");
-    const allCooperate = lastRound.decisions.every((d) => d === "C");
-
-    if (allDefect) {
-      return {
-        status: "✓ Equilibrio de Nash detectado",
-        explanation:
-          "Cuando todos confiesan, ningún jugador puede mejorar su resultado cambiando unilateralmente su decisión. Si un jugador cambia a no confesar, recibirá una penalidad peor.",
-      };
-    } else if (allCooperate) {
-      return {
-        status: "⚠️ Comportamiento cooperativo (NO es equilibrio de Nash)",
-        explanation:
-          "Aunque todos cooperan, cualquier jugador podría mejorar su resultado confesando. Por tanto, esta situación es inestable.",
-      };
-    } else {
-      return {
-        status: "⚠️ Comportamiento mixto (NO es equilibrio de Nash)",
-        explanation:
-          "Los jugadores tienen incentivos para cambiar sus estrategias. No se ha alcanzado un punto donde nadie quiera cambiar unilateralmente.",
-      };
     }
   };
 
@@ -378,146 +337,9 @@ const App: React.FC = () => {
 
   // Renderizar resultados
   const renderResults = () => {
-    // const chartData = players.map(p => ({
-    //   name: p.name,
-    //   penalidad: Math.abs(p.totalPenalty)
-    // }));
-
-    const roundChartData = roundResults.map((r) => {
-      const data: Record<string, number> = { round: r.round };
-      players.forEach((p, idx) => {
-        data[p.name] = Math.abs(r.penalties[idx]);
-      });
-      return data;
-    });
-
-    const nashAnalysis = analyzeNashEquilibrium();
-
     return (
       <div className="results-container">
-        <h1>📊 Resultados Finales</h1>
-
-        <div className="results-grid">
-          <div className="result-card">
-            <h3>🏆 Clasificación Final</h3>
-            <p className="card-description">
-              El jugador con menos años de penalidad gana.
-            </p>
-            <div className="ranking">
-              {[...players]
-                .sort((a, b) => a.totalPenalty - b.totalPenalty)
-                .map((player, idx) => (
-                  <div key={player.id} className="rank-item">
-                    <span className="rank-position">{idx + 1}°</span>
-                    <span className="rank-name">{player.name}</span>
-                    <span className="rank-penalty">
-                      {player.totalPenalty} años
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
-
-          <div className="result-card">
-            <h3>🧠 Análisis Estratégico</h3>
-            <div className="analysis">
-              <div className="nash-analysis">
-                <h4>{nashAnalysis.status}</h4>
-                <p className="explanation">{nashAnalysis.explanation}</p>
-              </div>
-              <hr />
-              <h4>Tasa de Cooperación (No confesar):</h4>
-              {players.map((p) => {
-                const cooperations = p.decisions.filter(
-                  (d) => d === "C"
-                ).length;
-                const rate = (
-                  (cooperations / p.decisions.length) *
-                  100
-                ).toFixed(1);
-                return (
-                  <div key={p.id} className="cooperation-bar">
-                    <span className="player-label">{p.name}:</span>
-                    <div className="bar-container">
-                      <div
-                        className="bar-fill"
-                        style={{ width: `${rate}%` }}
-                      ></div>
-                      <span className="bar-text">{rate}%</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* <div className="chart-container">
-          <h3>📊 Penalidades Totales Acumuladas</h3>
-          <p className="chart-description">Suma total de años de penalidad por jugador.</p>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis label={{ value: 'Años de penalidad', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="penalidad" fill="#8884d8" name="Años de penalidad" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div> */}
-
-        {roundResults.length > 1 && (
-          <div className="chart-container">
-            <h3>📈 Evolución de Penalidades por Ronda</h3>
-            <p className="chart-description">
-              Este gráfico muestra cuántos años de penalidad recibió cada
-              jugador en cada ronda individual. Te permite ver cómo las
-              decisiones cambiaron a lo largo del tiempo y qué jugadores
-              recibieron las penalidades más altas en cada momento.
-            </p>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={roundChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="round"
-                  label={{
-                    value: "Número de Ronda",
-                    position: "insideBottom",
-                    offset: -5,
-                  }}
-                />
-                <YAxis
-                  label={{
-                    value: "Años de penalidad en la ronda",
-                    angle: -90,
-                    position: "insideLeft",
-                  }}
-                />
-                <Tooltip />
-                <Legend />
-                {players.map((p, idx) => (
-                  <Line
-                    key={p.id}
-                    type="monotone"
-                    dataKey={p.name}
-                    stroke={`hsl(${(idx * 360) / players.length}, 70%, 50%)`}
-                    strokeWidth={2}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-
-        <div className="chart-container">
-          <ResultTable roundResults={roundResults} players={players}>
-            <h3>📝 Detalles de las Rondas</h3>
-            <p className="chart-description">
-              Estas son las decisiones de cada jugador en cada ronda.
-            </p>
-          </ResultTable>
-        </div>
+        <ResultsApp roundResults={roundResults} players={players} />
 
         <button
           className="btn-primary"
