@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import "./App.css";
 import Swal from "sweetalert2";
 
-import { ResultTable } from "./components/ResultTable";
+// import { ResultTable } from "./components/ResultTable";
+import { GameApp } from "./components/GameApp";
 import { ResultsApp } from "./components/ResultsApp";
 import type { Player, RoundResult, Decision, Strategy } from "../types";
 
@@ -17,6 +18,11 @@ const App: React.FC = () => {
   const [roundResults, setRoundResults] = useState<RoundResult[]>([]);
   const [currentDecisions, setCurrentDecisions] = useState<Decision[]>([]);
 
+  const handleDecision = (idx: number, choice: Decision) => {
+    const newDecisions = [...currentDecisions];
+    newDecisions[idx] = choice;
+    setCurrentDecisions(newDecisions);
+  };
   // Inicializar juego
 
   const startGame = () => {
@@ -271,67 +277,13 @@ const App: React.FC = () => {
         Ronda {currentRound} de {gameType === "single" ? 1 : numRounds}
       </h1>
 
-      <div className="decisions-grid">
-        {players.map((player, idx) => (
-          <div key={player.id} className="player-decision">
-            <h3>{player.name}</h3>
-            <div className="strategy-badge">
-              {player.strategy === "manual" ? "🎯 Manual" : "🤖 Automático"}
-            </div>
-
-            {player.strategy === "manual" ? (
-              <div className="decision-buttons">
-                <button
-                  className={`btn-decision ${
-                    currentDecisions[idx] === "C" ? "selected cooperate" : ""
-                  }`}
-                  onClick={() => {
-                    const newDecisions = [...currentDecisions];
-                    newDecisions[idx] = "C";
-                    setCurrentDecisions(newDecisions);
-                  }}
-                >
-                  🤝 No Confesar
-                </button>
-                <button
-                  className={`btn-decision ${
-                    currentDecisions[idx] === "D" ? "selected defect" : ""
-                  }`}
-                  onClick={() => {
-                    const newDecisions = [...currentDecisions];
-                    newDecisions[idx] = "D";
-                    setCurrentDecisions(newDecisions);
-                  }}
-                >
-                  🗣️ Confesar
-                </button>
-              </div>
-            ) : (
-              <div className="auto-decision">
-                <p>Decisión automática según estrategia</p>
-              </div>
-            )}
-
-            <div className="player-stats">
-              <div>Penalidad total: {player.totalPenalty} años</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <button className="btn-primary" onClick={processRound}>
-        Procesar Ronda
-      </button>
-
-      {roundResults.length > 0 && (
-        <ResultTable roundResults={roundResults} players={players}>
-          <h3>📋 Historial Completo de Decisiones</h3>
-          <p className="history-description">
-            Aquí puedes ver todas las decisiones tomadas en cada ronda, junto
-            con las penalidades recibidas por cada jugador.
-          </p>
-        </ResultTable>
-      )}
+      <GameApp
+        players={players}
+        currentDecisions={currentDecisions}
+        roundResults={roundResults}
+        handleDecision={handleDecision}
+        handleProcess={processRound}
+      />
     </div>
   );
 

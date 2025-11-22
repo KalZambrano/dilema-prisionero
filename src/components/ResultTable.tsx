@@ -1,17 +1,14 @@
 import type { Player, RoundResult } from "../../types";
 
-export function ResultTable({
-  roundResults,
-  players,
-  children
-}: {
+interface Props {
   roundResults: RoundResult[];
   players: Player[];
-  children?: React.ReactNode
-}) {
+  children?: React.ReactNode;
+}
+export function ResultTable({ roundResults, players, children }: Props) {
   return (
     <div className="round-history">
-        {children}
+      {children}
       <div className="table-wrapper">
         <table>
           <thead>
