@@ -23,6 +23,7 @@ const App: React.FC = () => {
     newDecisions[idx] = choice;
     setCurrentDecisions(newDecisions);
   };
+
   // Inicializar juego
 
   const startGame = () => {
@@ -92,7 +93,11 @@ const App: React.FC = () => {
   };
 
   // Generar decisión según estrategia
-  const generateDecision = (player: Player, roundNum: number): Decision => {
+  const generateDecision = (
+    player: Player,
+    roundNum: number,
+    results: RoundResult[]
+  ): Decision => {
     const playerChoice = player.strategy;
     if (playerChoice === "always-cooperate") {
       return "C";
@@ -101,7 +106,7 @@ const App: React.FC = () => {
     } else if (playerChoice === "tit-for-tat") {
       if (roundNum === 1) return "C";
       // Copiar la decisión más común de la ronda anterior
-      const lastRound = roundResults[roundResults.length - 1];
+      const lastRound = results[results.length - 1];
       if (lastRound) {
         const cooperators = lastRound.decisions.filter((d) => d === "C").length;
         return cooperators > numPlayers / 2 ? "C" : "D";
@@ -122,7 +127,7 @@ const App: React.FC = () => {
     finalDecisions = finalDecisions.map((decision, idx) => {
       if (decision !== null) return decision;
       if (players[idx].strategy !== "manual") {
-        return generateDecision(players[idx], currentRound);
+        return generateDecision(players[idx], currentRound, roundResults);
       }
       return decision;
     });
@@ -165,6 +170,40 @@ const App: React.FC = () => {
       setCurrentRound(currentRound + 1);
       setCurrentDecisions(Array(numPlayers).fill(null));
     }
+  };
+
+  const processAutoRounds = () => {
+    let localPlayers = players.map((p) => ({ ...p }));
+    const localRoundResults: RoundResult[] = [...roundResults];
+
+    // Procesar cada ronda
+    for (let round = currentRound; round <= numRounds; round++) {
+      // Generar decisiones para esta ronda
+      const roundDecisions: Decision[] = localPlayers.map((player) => {
+        return generateDecision(player, round, localRoundResults);
+      });
+
+      // Calcular penalidades
+      const penalties = calculatePenalties(roundDecisions);
+
+      // Actualizar jugadores locales
+      localPlayers = localPlayers.map((player, idx) => ({
+        ...player,
+        decisions: [...player.decisions, roundDecisions[idx]],
+        penalties: [...player.penalties, penalties[idx]],
+        totalPenalty: player.totalPenalty + penalties[idx],
+      }));
+
+      // Guardar resultado de la ronda
+      localRoundResults.push({
+        round,
+        decisions: roundDecisions,
+        penalties,
+      });
+    }
+    setPlayers(localPlayers);
+    setRoundResults(localRoundResults);
+    setStep("results");
   };
 
   // Renderizar configuración
@@ -283,6 +322,8 @@ const App: React.FC = () => {
         roundResults={roundResults}
         handleDecision={handleDecision}
         handleProcess={processRound}
+        handleAuto={processAutoRounds}
+        gameType={gameType}
       />
     </div>
   );

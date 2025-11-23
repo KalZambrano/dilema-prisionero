@@ -5,10 +5,21 @@ interface Props {
   players: Player[];
   currentDecisions: Decision[];
   roundResults: RoundResult[];
-  handleDecision: (idx:number, choice: Decision) => void;
-  handleProcess: () => void
+  handleDecision: (idx: number, choice: Decision) => void;
+  handleProcess: () => void;
+  handleAuto: () => void;
+  gameType: "single" | "multiple";
 }
-export function GameApp({ players, currentDecisions, roundResults, handleDecision, handleProcess }: Props) {
+export function GameApp({
+  players,
+  currentDecisions,
+  roundResults,
+  handleDecision,
+  handleProcess,
+  handleAuto,
+  gameType
+}: Props) {
+  const playerStrategies = players.map((p) => p.strategy);
   return (
     <>
       <div className="decisions-grid">
@@ -65,6 +76,11 @@ export function GameApp({ players, currentDecisions, roundResults, handleDecisio
       <button className="btn-primary" onClick={handleProcess}>
         Procesar Ronda
       </button>
+      {!playerStrategies.includes("manual") && gameType === "multiple" && (
+        <button className="btn-skip" onClick={handleAuto}>
+          Saltear Rondas ⏩
+        </button>
+      )}
 
       {roundResults.length > 0 && (
         <ResultTable roundResults={roundResults} players={players}>
